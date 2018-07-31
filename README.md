@@ -28,3 +28,6 @@ This converter supports the following Zeppelin conventions:
 * TABLE output is converted to simple `text/html` tables
   * `%html` table cells are embedded in the table HTML
   * Normal table cells are escaped and then embedded in the table HTML
+
+### UPDATE CHANGES
+fix three bugs in original version, and now it works.
