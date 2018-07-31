@@ -1,3 +1,4 @@
+from __future__ import unicode_literals, print_function
 import os, sys
 import re
 import csv
@@ -5,8 +6,10 @@ import json
 import html
 import nbformat
 import codecs
-from aws.s3 import S3
-from StringIO import StringIO
+try:
+    from StringIO import StringIO
+except ImportError:
+    from io import StringIO
 
 MD = re.compile(r'%md\s')
 SQL = re.compile(r'%sql\s')
@@ -14,18 +17,12 @@ UNKNOWN_MAGIC = re.compile(r'%\w+\s')
 HTML = re.compile(r'%html\s')
 
 def read_io(path):
-    """Reads the contents of a local or S3 path into a StringIO.
+    """Reads the contents of a local into a StringIO.
     """
     note = StringIO()
-    if path.startswith("s3://"):
-        s3 = S3(env='prod')
-        for line in s3.read(path):
+    with open(path) as local:
+        for line in local.readlines():
             note.write(line)
-            note.write("\n")
-    else:
-        with open(path) as local:
-            for line in local.readlines():
-                note.write(line)
 
     note.seek(0)
 
@@ -103,7 +100,7 @@ def convert_parsed(zeppelin_note):
         cells.append(cell)
 
         result = paragraph.get('result')
-        if cell['cell_type'] == 'code' and result:
+        if cell['cell_type'] == 'code' and isinstance(result, dict): # result have to be a dict, not None, not str
             if result['code'] == 'SUCCESS':
                 result_type = result.get('type')
                 output_by_mime_type = {}
@@ -169,16 +166,10 @@ def write_notebook(notebook_name, notebook, path=None):
 
 if __name__ == '__main__':
     num_args = len(sys.argv)
-
     zeppelin_note_path = None
     target_path = None
-    if num_args == 2:
-        zeppelin_note_path = sys.argv[1]
-    elif num_args == 3:
-        target_path = sys.argv[2]
-
-    if not zeppelin_note_path:
-        exit()
+    zeppelin_note_path = sys.argv[1]
+    target_path = sys.argv[2]
 
     name, content = convert_json(read_io(zeppelin_note_path))
     write_notebook(name, content, target_path)
